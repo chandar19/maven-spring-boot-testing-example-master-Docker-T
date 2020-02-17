@@ -1,0 +1,70 @@
+node{
+    stage("Git Clone"){
+        git credentialsId: 'GIT_CREDENTIALS', url: 'https://github.com/chandar19/maven-spring-boot-testing-example-master-Docker-T.git'
+    }
+    stage("Maven Clean Compile")
+    {
+        def mavenHome= tool name:"Maven-3.6.1",type:"maven"
+        def mavenCMD="${mavenHome}/bin/mvn clean compile"
+        sh "${mavenCMD}"
+    }
+    
+    
+
+	stage('UnitTest')
+		{
+		def mavenHome= tool name:"Maven-3.6.1",type:"maven"
+
+		sh "${mavenHome}/bin/mvn clean verify -Pdev"
+		}
+		
+	stage('Package')
+	{
+	            def mavenHome= tool name:"Maven-3.6.1",type:"maven"
+
+	sh "${mavenHome}/bin/mvn clean package"
+	}	
+	stage('IntegrationTest')
+		{
+		            def mavenHome= tool name:"Maven-3.6.1",type:"maven"
+
+		sh "${mavenHome}/bin/mvn clean verify -Pintegration-test"
+		}
+    
+    
+    
+    stage("Build Docker Image")
+    { withEnv(["GIT_COMMIT_HASH=${gitCommitHash()}"]) {
+        sh "docker build -t chandar19/spring-boot-example:${GIT_COMMIT_HASH} ."
+      }
+    }
+    stage("Docker Push"){
+       withCredentials([string(credentialsId: 'DOCKER_HUB_CREDENTIALS', variable: 'DOCKER_HUB_CREDENTIALS')]) {
+     sh "docker login -u chandar19 -p ${DOCKER_HUB_CREDENTIALS}"
+    }
+       withEnv(["GIT_COMMIT_HASH=${gitCommitHash()}"]) {
+
+      sh "docker push chandar19/spring-boot-example:${GIT_COMMIT_HASH} "
+      
+      }
+    }
+    stage("Deploy Application in K82 Cluster"){
+      withEnv(["GIT_COMMIT_HASH=${gitCommitHash()}"]) {
+
+        kubernetesDeploy(
+            configs: 'spring-boot-example-deployment.yml',
+            kubeconfigId: 'KUBERNETES_CLUSTER_CONFIG',
+            enableConfigSubstitution: true
+        )
+      }
+    }
+    stage("Email Notification")
+    {
+        sh "docker build -t chandar19/spring-boot-example ."
+    }
+    
+}
+
+ def gitCommitHash() {
+    sh(returnStdout: true, script: 'git rev-parse HEAD').trim()
+   }
