@@ -6,7 +6,7 @@ test the system modules as a whole.
 
 This project is arranged the way that it is so that the project can be built for continuous integration, while
 enabling developers to fully test components before they check in their code.  The purpose of integration testing
-is to verify functional, performance, and reliability requirements placed on major design items.
+is to verify functional, performance, and reliability requirements placed on major design items .
 
 # How-To Manually Deploy WAR
 
